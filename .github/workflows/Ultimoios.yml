@@ -1,0 +1,37 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Bypass Platform Check
+        run: |
+          # Comenta la linea de verificacion de plataforma en CMakeLists.txt
+          sed -i '' 's/message(FATAL_ERROR "Unrecognized Platform!")/# bypassed/g' CMakeLists.txt
+
+      - name: Configure CMake for iOS
+        run: |
+          mkdir build_ios
+          cd build_ios
+          cmake .. \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_SYSROOT=iphoneos \
+            -DCMAKE_OSX_ARCHITECTURES=arm64
+
+      - name: Build with Xcode
+        run: |
+          cd build_ios
+          xcodebuild -configuration Release \
+            -sdk iphoneos \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO
