@@ -1,0 +1,46 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure CMake for iOS
+        run: |
+          mkdir build_ios
+          cd build_ios
+          cmake .. \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_SYSROOT=iphoneos \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_SYSTEM_PROCESSOR=arm64 \
+            -Wno-dev
+
+      - name: Build with Xcode
+        run: |
+          cd build_ios
+          xcodebuild -configuration Release \
+            -sdk iphoneos \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO
+
+      - name: Package IPA
+        run: |
+          mkdir -p Payload
+          find build_ios -name "*.app" -exec cp -R {} Payload/ \; || true
+          zip -r NeuralAmpModeler.ipa Payload
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeuralAmpModeler-IPA
+          path: NeuralAmpModeler.ipa
